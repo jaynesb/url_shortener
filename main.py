@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, request, abort, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import short_url
 
 # Set up the default Flask app
 # Flask does a significant portion of the REST API legwork for us
@@ -16,12 +17,25 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+# Something to quickly validate if we've received a valid payload
+# Since we want to return json, we might as well expect json
+# This could always be expanded later
+def handle_request_content(request_obj):
+    if request_obj.content_type != "application/json":
+        abort(422)
+    request_json = request_obj.get_json(force=True)
+    if not request_json["url"]:
+        abort(422)
+    return request_json
+
 # Encodes a URL
 # This should be a POST, since we'll be storing in memory
 @app.route("/encode", methods=["POST"])
 @limiter.limit("2/second")
 def encode():
-    return "foo"
+    request_json = handle_request_content(request)
+    encoded_url = short_url.encode(request_json["url"])
+    return jsonify(encoded_url)
 
 # Decodes a URL
 # This should be a QUERY, since we expect our URL to be in the request body
@@ -30,7 +44,9 @@ def encode():
 @app.route("/decode", methods=["QUERY"])
 @limiter.limit("2/second")
 def decode():
-    return "bar"
+    request_json = handle_request_content(request)
+    decoded_url = short_url.decode(request_json["url"])
+    return jsonify(decoded_url)
 
 if __name__ == "__main__":
     app.run()
