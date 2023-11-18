@@ -5,23 +5,21 @@ from flask_caching import Cache
 from urllib.parse import urlparse
 import short_url
 import validators
+import consts
 
 # Set up the default Flask app
 # Flask does a significant portion of the REST API legwork for us
 # Flask's documentation is here: https://flask.palletsprojects.com/en/3.0.x/
+# We'll also use Flask-Caching for our shortened URL cache:
+# https://flask-caching.readthedocs.io/en/latest/index.html
 # Could switch to FastAPI if we want a swagger page for ease of use...
 app = Flask(__name__)
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 cache.init_app(app)
 
-# String consts... maybe put these elsewhere
-COUNTER_KEY = "url_counter"
-DOMAIN = "url-encoder.test"
-REQUEST_KEY = "url"
-
 # Global variables weren't a functioning solution. Let's try a cache instead.
 # We're going to start the cache at 1, since the cache at 0 makes the first encoded result weird
-cache.set(COUNTER_KEY, 1)
+cache.set(consts.COUNTER_KEY, 1)
 # We also need a DOMAIN for our generated URLs
 
 # Set up Flask Limiter for rate limiting (see https://flask-limiter.readthedocs.io/en/stable/)
@@ -43,10 +41,10 @@ def handle_request_content(request_obj):
     request_json = request_obj.get_json(force=True)
     print(request_json)
     # Make sure the payload has a url field
-    if not request_json[REQUEST_KEY]:
+    if not request_json[consts.REQUEST_KEY]:
         abort(422)
     # Validate we're actually receiving a URL here, use validators library
-    if not validators.url(request_json[REQUEST_KEY]):
+    if not validators.url(request_json[consts.REQUEST_KEY]):
         abort(422)
     return request_json
 
@@ -54,13 +52,13 @@ def handle_request_content(request_obj):
 # Doesn't matter for this exercise, since we're not redirecting
 # to the shortened URL
 def make_encoded_url(id):
-    encoded_url = "http://{}/{}".format(DOMAIN, id)
+    encoded_url = "http://{}/{}".format(consts.DOMAIN, id)
     print(encoded_url)
     return encoded_url
 
 def increment_counter():
-    current_count = int(cache.get(COUNTER_KEY))
-    cache.set(COUNTER_KEY, current_count + 1)
+    current_count = int(cache.get(consts.COUNTER_KEY))
+    cache.set(consts.COUNTER_KEY, current_count + 1)
 
 # Encodes a URL
 # This should be a POST, since we'll be storing in memory
@@ -71,27 +69,29 @@ def encode():
 
     # Short_URL encodes an integer and returns an encoded value
     # Make it a minimum of 6 characters, just because that looks nicer
-    encoded_id = short_url.encode_url(cache.get(COUNTER_KEY), 6)
+    encoded_id = short_url.encode_url(cache.get(consts.COUNTER_KEY), 6)
     print("Encoded id: " + encoded_id)
     # Store the URL in our store, then increment the counter
     # I considered checking if we've already shortened a URL for the requested, but that
     # feels like it'd be too computationally intensive and ultimately not worth it
-    cache.set(cache.get(COUNTER_KEY), request_json[REQUEST_KEY])
+    cache.set(cache.get(consts.COUNTER_KEY), request_json[consts.REQUEST_KEY])
     increment_counter()
     return jsonify(make_encoded_url(encoded_id))
 
 # Decodes a URL
-# This should be a QUERY, since we expect our URL to be in the request body
+# This really should be a QUERY, since we expect our URL to be in the request body
 # Fun stuff about QUERY, since it's new-ish: 
 # https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-02.html
-@app.route("/decode", methods=["QUERY"])
+# Unfortunately, QUERY isn't innately supported by Flask's test client
+# So we'll use POST, since GET with a body is bad practice
+@app.route("/decode", methods=["POST"])
 @limiter.limit("2/second")
 def decode():
     request_json = handle_request_content(request)
     
     # parse the returned URL for our encoded id and decode it
     # the path includes the leading slash, substr that out
-    parsed_id = urlparse(request_json[REQUEST_KEY]).path
+    parsed_id = urlparse(request_json[consts.REQUEST_KEY]).path
     # Make sure we're not being provided too long a key
     # Could could possibly do this with regex for a slightly more robust solution?
     if len(parsed_id) > 7:
