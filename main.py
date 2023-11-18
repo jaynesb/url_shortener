@@ -35,6 +35,8 @@ limiter = Limiter(
 # Since we want to return json, we might as well expect json
 # This could always be expanded later
 def handle_request_content(request_obj):
+    if not request_obj.data:
+        abort(400)
     print(request_obj.content_type)
     if request_obj.content_type != "application/json":
         abort(415)
@@ -76,7 +78,7 @@ def encode():
     # feels like it'd be too computationally intensive and ultimately not worth it
     cache.set(cache.get(consts.COUNTER_KEY), request_json[consts.REQUEST_KEY])
     increment_counter()
-    return jsonify(make_encoded_url(encoded_id))
+    return jsonify({consts.REQUEST_KEY: make_encoded_url(encoded_id)})
 
 # Decodes a URL
 # This really should be a QUERY, since we expect our URL to be in the request body
@@ -91,18 +93,24 @@ def decode():
     
     # parse the returned URL for our encoded id and decode it
     # the path includes the leading slash, substr that out
-    parsed_id = urlparse(request_json[consts.REQUEST_KEY]).path
-    # Make sure we're not being provided too long a key
-    # Could could possibly do this with regex for a slightly more robust solution?
-    if len(parsed_id) > 7:
+    parsed_url = urlparse(request_json[consts.REQUEST_KEY])
+    parsed_id = parsed_url.path[1:]
+    # Make sure we're not being provided too long a key, or extra junk
+    if len(parsed_id) > 6 or parsed_url.query != "" or parsed_url.fragment != "":
         abort(400)
-    parsed_id = parsed_id[1:]
     print("Id to decode: " + parsed_id)
-    decoded_id = short_url.decode_url(parsed_id)
+    try:
+        decoded_id = short_url.decode_url(parsed_id)
+    except:
+        # Handle a scenario where the decoder fails to decode
+        # Should only happen with an id the encoder can't generate
+        # We'll use 418 "I'm a teapot", to indicate that this id doesn't match our algorithm
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/418
+        abort(418)
     # We should make sure the id exists in our store as a final sanity check...
     if not cache.has(decoded_id):
         abort(404)
-    return jsonify(cache.get(decoded_id))
+    return jsonify({consts.REQUEST_KEY: cache.get(decoded_id)})
 
 # make the script run Flask automatically when it starts
 if __name__ == "__main__":
