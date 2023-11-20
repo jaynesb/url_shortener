@@ -36,7 +36,7 @@ Both endpoints expect the POST http method, and a simple json payload containing
 The `/encode` method expects a json payload in the following format.
 ```json
 {
-    "url": "protocol://some-url.here/maybe/with/extra/stuff?or-not
+    "url": "protocol://some-url.here/maybe/with/extra/stuff?or-not"
 }
 ```
 
