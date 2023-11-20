@@ -4,22 +4,26 @@ A URL Shortener wrapped in an API. This was written using Python 3.12, but shoul
 ## Requirements
 This python program depends on a number of other python modules to function, especially Flask. To install these, run the following in your terminal:
 
-```
+```bash
 pip install -r requirements.txt
 ```
-
-Note: if using 
 
 ## Running the app
 This is a very simple python application. To run it, execute the following in your terminal:
 
-```
+```bash
 python main.py
 ```
 This hosts the application on `localhost` at port `5000`.
 
 To stop the server, simply `Ctrl+C` in the terminal hosting the app.
 
+## Invoking the unit tests
+To invoke the unit tests, simply execute `pytest` in the repository root directory after installing the app requirements. The test output can be conveniently piped to a file like so:
+```bash
+pytest > test_output.txt
+```
+Test execution takes approximately 50 seconds due to delays between tests to avoid triggering the API rate limiter.
 
 ## Using the app
 The API exposes two endpoints:
@@ -30,18 +34,18 @@ Both endpoints expect the POST http method, and a simple json payload containing
 
 ### Encode
 The `/encode` method expects a json payload in the following format.
-```
+```json
 {
     "url": "protocol://some-url.here/maybe/with/extra/stuff?or-not
 }
 ```
 
 The following is a valid example of invoking the `/encode` endpoint using `curl`:
-```
+```bash
 curl -X POST http://localhost:5000/encode -H "content-type: application/json" -d '{"url":"https://www.google.com"}'
 ```
 Or with `Powershell`:
-```
+```powershell
 Invoke-WebRequest -Method POST -URI http://localhost:5000/encode -ContentType 'application/json' -Body '{"url":"https://www.google.com"}' 
 ```
 
@@ -49,18 +53,18 @@ Shortened URLs are persisted in-memory only. Restarting the application will res
 
 ### Decode
 The `/decode` method expects a json payload in the following format.
-```
+```json
 {
     "url": "<a url returned by the /encode endpoint>"
 }
 ```
 
 The following is a valid example of invoking the `/decode` endpoint using `curl`
-```
+```bash
 curl -X POST http://localhost:5000/decode -H "content-type: application/json" -d '{"url":"http://url-encoder.test/m867nv"}'
 ```
 Or with `Powershell`:
-```
+```powershell
 Invoke-WebRequest -Method POST -URI http://localhost:5000/decode -ContentType 'application/json' -Body '{"url":"http://url-encoder.test/m867nv"}' 
 ```
 

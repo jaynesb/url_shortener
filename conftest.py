@@ -1,6 +1,7 @@
 # This file needs to be here so I can run pytest from the root directory
 # I do not know why, but it was the solution that worked from:
 # https://stackoverflow.com/questions/20985157/py-test-no-module-named
+# It also sets up basic test fixtures
 import pytest
 import time
 from main import app
