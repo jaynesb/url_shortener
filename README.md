@@ -1,28 +1,39 @@
 # url_shortener
 A URL Shortener wrapped in an API. This was written using Python 3.12, but should be compatible with other 3.x versions of Python.
 
-## Requirements
+## Setting up pipenv
+This repo uses `pipenv` to set up a virtual python environment. This helps prevent package conflicts with other python projects you may have. Use the following to setup or upgrade `pipenv`:
+```bash
+# See https://pipenv.pypa.io/en/latest/installation.html for further details
+# Setup
+pip install pipenv --user
+# Upgrade
+pip install --user --upgrade pipenv
+```
+Once installed, you may additionally need to add pipenv to your PATH. The install for `pipenv` prints helpful warnings indicating where its executables are installed if it detects it is not on your PATH.
+
+## Setting up the virtual environment
 This python program depends on a number of other python modules to function, especially Flask. To install these, run the following in your terminal:
 
 ```bash
-pip install -r requirements.txt
+pipenv install
 ```
+This uses `pipenv` to pull dependencies to a dedicated virtual environment folder, usually located in `~/.virtualenvs/<project_name>_<someid>`.
+
 
 ## Running the app
 This is a very simple python application. To run it, execute the following in your terminal:
 
 ```bash
-python main.py
+pipenv run python main.py
 ```
-This hosts the application on `localhost` at port `5000`.
+Using the pipenv virtual environment, this hosts the application on `localhost` at port `5000`.
 
 To stop the server, simply `Ctrl+C` in the terminal hosting the app.
 
 ## Invoking the unit tests
-To invoke the unit tests, simply execute `pytest` in the repository root directory after installing the app requirements. The test output can be conveniently piped to a file like so:
-```bash
-pytest > test_output.txt
-```
+To invoke the unit tests, simply execute `pipenv run pytest` in the repository root directory after installing the app requirements. 
+
 Test execution takes approximately 50 seconds due to delays between tests to avoid triggering the API rate limiter.
 
 ## Using the app
